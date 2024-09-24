@@ -22,6 +22,7 @@ decode_results results; //Objeto em que será atribuido os sinais captados
 float armazenavalor; //Variável em que os sinais são atribuídos
 int graus = 25; //Valor inicial de temperaruta do Display
 bool ligado = true; //Se o Display deve exibir a temperatura, inicialmente ligado
+bool mudanca = false;
 
 Adafruit_SSD1306 display = Adafruit_SSD1306(); //bjeto do display
 
@@ -39,35 +40,39 @@ void setup() {
 }
 
 void loop() {
-  //Se o display estiver "ligado" então ele exibirá os dados
-  if(ligado){
-    display.clearDisplay(); //Limpa o display
-    //Define o tamanho e posição do texto "Temperatura: "
-    display.setTextSize(1);
-    display.setCursor(0,0);
-    display.print("Temperatura: ");
-    //Define o tamanho e posição do texto da variável da temperatura
-    display.setTextSize(2);
-    display.setCursor(0,10);
-    display.print(graus);
-    display.write(248); //Adiciona o ícone de graus
-    display.print("C"); //Adiciona o "C" de Celsius
-    display.display(); //Exibe os textos prescritos
-  }
-  else{
-    display.clearDisplay(); //Limpa a tela
-    display.display(); //Exibe o que foi predefinido, nesse caso, nada
+  if(mudanca){
+    //Se o display estiver "ligado" então ele exibirá os dados
+    if(ligado){
+      display.clearDisplay(); //Limpa o display
+      //Define o tamanho e posição do texto "Temperatura: "
+      display.setTextSize(1);
+      display.setCursor(0,0);
+      display.print("Temperatura: ");
+      //Define o tamanho e posição do texto da variável da temperatura
+      display.setTextSize(2);
+      display.setCursor(0,10);
+      display.print(graus);
+      display.write(248); //Adiciona o ícone de graus
+      display.print("C"); //Adiciona o "C" de Celsius
+      display.display(); //Exibe os textos prescritos
+    }
+    else{
+      display.clearDisplay(); //Limpa a tela
+      display.display(); //Exibe o que foi predefinido, nesse caso, nada
+    }
+  mudanca = false;
   }
   //Se receber algum sinal, o atribuirá a uma variável
   if (irrecv.decode(&results)) {
+    mudanca = true;
     Serial.print("Valor: ");
     Serial.println(results.value, HEX);
     armazenavalor = (results.value);
     //Identifa o sinal e executa certas funções dependendo desses
-    if(armazenavalor == 0x00FFE04F) graus = graus - 1; //diminui o texto da temperatura em 1
-    else if(armazenavalor == 0xFFE03F)  graus++; //aumnenta o texto da temperatura em 1
-    else if(armazenavalor == 0xFFE02F)  ligado = true; //"Liga" o display
-    else if(armazenavalor == 0xFFE01F)  ligado = false; //"Desliga" o display
+    if(armazenavalor == 0x00FFE04F || armazenavalor == 0xC90) graus = graus - 1; //diminui o texto da temperatura em 1
+    else if(armazenavalor == 0xFFE03F || armazenavalor == 0x490)  graus++; //aumnenta o texto da temperatura em 1
+    else if(armazenavalor == 0xFFE02F || armazenavalor == 0x90)  ligado = true; //"Liga" o lcd
+    else if(armazenavalor == 0xFFE01F || armazenavalor == 0x890)  ligado = false; //"Desliga" o lcd
     delay(50);
     irrecv.resume(); //Retoma a recepção de novos sinais
   }

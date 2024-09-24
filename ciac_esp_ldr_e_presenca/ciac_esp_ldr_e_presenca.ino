@@ -71,22 +71,20 @@ void sendMessage() {
   //Recebe o valor da presença
   presenca = digitalRead(sensor_de_presenca);
  
-  //Atribui um ID e o parametro da presença em JSON
-  DynamicJsonDocument doc(1024);
-  doc["ID"] = "Sensor PRES";
-  doc["PRES"] = !presenca;
+  //Atribui o parâmetro da presença em JSON
+  JsonDocument doc;
+  doc["PRES"] = presenca;
 
   //Se luminosidade for relevante. Configurado pelo cliente
   if(lumi_on){
     valorsensor = analogRead(LDR);
-    if(valorsensor >= 2000)  luminosidade = true;
+    if(valorsensor >= 1500)  luminosidade = true;
     else luminosidade = false;
 
   } else luminosidade = false;
 
-  //Adiciona um ID e o parametro da luminosidade em JSON e o envia
+  //Adiciona o parâmetro da luminosidade em JSON e o envia
   doc["LUMI"] = luminosidade;
-  doc["ID2"] = "Sensor LUMI";
   
   String msg ;
   serializeJson(doc, msg);
@@ -99,7 +97,7 @@ void sendMessage() {
 void receivedCallback( uint32_t from, String &msg ) {
   //Recebe a mensagem em JSON e o lê
   String json;
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   json = msg.c_str();
   DeserializationError error = deserializeJson(doc, json);
   
@@ -110,5 +108,5 @@ void receivedCallback( uint32_t from, String &msg ) {
   }
 
   //Se receber dados a partir do MQTT, coleta o comando que deixa a luminosidade relevante ou não
-  if(doc["ID"] == "ON_LUMI")  lumi_on = doc["ON_LUMI"];
+  if(doc.containsKey("ON_LUMI"))  lumi_on = doc["ON_LUMI"];
 }

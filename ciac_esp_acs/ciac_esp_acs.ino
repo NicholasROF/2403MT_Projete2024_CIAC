@@ -23,7 +23,7 @@ const int pino_asc = 0; //Pino que o ACS está conectado
 int medicao = 0;
 double medida_media = 0;
 double tensao_obtida = 0.0;
-const float calibracao_entrada = 0.31;
+const float calibracao_entrada = 0.36;
 const float calibracao_sensor = 0.03;
 const float sense = 0.185;
 double tensao_delta = 0.0;
@@ -98,9 +98,8 @@ void sendMessage() {
   potencia = corrente * tensao; //Watts/segundo
   gasto_energetico = potencia * 3600; //Watts/hora
 
-  //Atribui um ID e o valor do consumo em JSON e o envia
-  DynamicJsonDocument doc(1024);
-  doc["ID"] = "Sensor ENER";
+  //Atribui o valor do consumo em JSON e o envia
+  JsonDocument doc;
   doc["ENER"] = gasto_energetico;
   String msg ;
   serializeJson(doc, msg);
@@ -111,5 +110,4 @@ void sendMessage() {
 
 //Função que é executada quando recebe uma mensagem
 void receivedCallback( uint32_t from, String &msg ) {
-
 }

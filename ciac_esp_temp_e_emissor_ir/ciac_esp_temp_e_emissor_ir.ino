@@ -91,9 +91,8 @@ void sendMessage() {
   temperatura = sensors.getTempCByIndex(0);
   Serial.print(temperatura);   Serial.println("ºC");
 
-  //Atribui um ID e a temperatura em JSON e o envia
-  DynamicJsonDocument doc(1024);
-  doc["ID"] = "Sensor TEMP";
+  //Atribui a temperatura em JSON e o envia
+  JsonDocument doc;
   doc["TEMP"] = temperatura;
   String msg ;
   serializeJson(doc, msg);
@@ -106,7 +105,7 @@ void sendMessage() {
 void receivedCallback( uint32_t from, String &msg ) {
   //Recebe a mensagem em JSON e o lê
   String json;
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   json = msg.c_str();
   DeserializationError error = deserializeJson(doc, json);
   
@@ -117,27 +116,30 @@ void receivedCallback( uint32_t from, String &msg ) {
   }
 
   //Se receber dados de determinados nodos, coleta a mensagem
-  if(doc["ID"] == "AIR_TEMP") ar_temperatura_on = doc["AIR_TEMP"];
-  if(doc["ID"] == "AIR_CONT") graus_ar_mudanca = doc["AIR_CONT"];
-  if(doc["ID"] == "SHUT") shutdown = doc["SHUT"];
-  if(doc["ID"] == "Sensor PRES") presenca = doc["PRES"];
+  if(doc.containsKey("AR_TEMP")) graus_ar_mudanca = doc["AR_TEMP"];
+  if(doc.containsKey("AR_CONT_ON")) ar_temperatura_on = doc["AR_CONT_ON"];
+  if(doc.containsKey("AR_CONT_OFF")) ar_temperatura_off = doc["AR_CONT_OFF"];
+  if(doc.containsKey("SHUT")) shutdown = doc["SHUT"];
+  if(doc.containsKey("PRES")) presenca = doc["PRES"];
 
-  if(!shutdown && presenca && temperatura >= ar_temperatura_on){  
+  if(!shutdown && presenca && temperatura >= ar_temperatura_on && !ligado){  
     irsend.sendNEC(0x00FFE02FUL); //Ligar ar-condicionado
+    ligado = true;
     delay(50);
-    
-  } else{
-      irsend.sendNEC(0x00FFE01FUL); //Desiga o ar-condicionado
-      delay(50);
+
+  } else if(!shutdown && presenca && temperatura < ar_temperatura_off && ligado){
+    irsend.sendNEC(0x00FFE01FUL); //Desiga o ar-condicionado
+    ligado = false;
+    delay(50);
   }
   while(graus_ar_mudanca < graus_ar){
     irsend.sendNEC(0x00FFE03FUL); //aumenta a temperatura do ar
-    delay(50);
     graus_ar += 1;
+    delay(50);
   }
   while(graus_ar_mudanca > graus_ar){
   irsend.sendNEC(0x00FFE04FUL); //diminui a temperatura do ar
-  delay(50);
   graus_ar -= 1;
+  delay(50);
   }
 }

@@ -30,6 +30,9 @@ bool presenca;
 
 SoftwareSerial MQTT(RXD, TXD); //Declara o objeto
 
+String message = "";  //String que recebe o dado Serial
+bool mensagemRecebida = false;  //Se a mensagem do Serial esta pronta para ser lida
+
 // --- Driver Relé ---
 
 const int Driver = 10; //Pino conectado na base do transistor
@@ -66,44 +69,60 @@ void setup()
 }
 
 void loop() {
-  //Se tiver mensagens disponíveis
-  if(MQTT.available())
+  //Se tiver mensagens disponíveis e não tiver trânsito de dados
+  if(MQTT.available() && !mensagemRecebida)
   {
-    String message = "";
-    message = MQTT.read(); //Lê a Serial
+    message = ""; //Limpa a string
+    message = MQTT.readStringUntil('\n'); //Lê a Serial até um espaço
     delay(10);
     Serial.print("Received Message - ");
     Serial.println(message);
-    //Forma a estrutura da mensagem JSON
-    DynamicJsonDocument doc(1024);
-    DeserializationError error = deserializeJson(doc, message);
-    //Identifica o dado recebido e atribui em uma mensagem
-    if (doc["TOPIC"] == "CIAC/SHUT"){ 
-      shutdown = doc["MQTT/SHUT"];
-      doc["ID"] = "SHUT";
-      doc["SHUT"] = shutdown;
-    }
-    if (doc["TOPIC"] == "CIAC/AIR_TEMP"){ 
-      temperatura_ar_cond = doc["MQTT/AIR_TEMP"];
-      doc["ID"] = "AIR_TEMP";
-      doc["AIR_TEMP"] = temperatura_ar_cond;
-    }
-    if (doc["TOPIC"] == "CIAC/AIR_CONT"){ 
-      controle_ar_cond = doc["MQTT/AIR_CONT"];
-      doc["ID"] = "AIR_CONT";
-      doc["AIR_CONT"] = controle_ar_cond;
-    }
-    if (doc["TOPIC"] == "CIAC/LUMI"){ 
-      ativar_lumi = doc["MQTT/LUMI"];
-      doc["ID"] = "ON_LUMI";
-      doc["ON_LUMI"] = ativar_lumi;
-    }
-    String msg ;
-    serializeJson(doc, msg);
-    //Envia na rede MESH
-    mesh.sendBroadcast( msg );
-    Serial.println(msg);
-    }
+    mensagemRecebida = true;  //Mensagem pronta
+  }
+  //Se tiver uma mensagem pronta
+  if(mensagemRecebida){
+
+      //Forma a estrutura da mensagem JSON
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, message);
+
+      if (error)
+      {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+      }
+
+      /*//Identifica o dado recebido e atribui em uma mensagem
+      if (doc.containsKey("MQTT/SHUT")){ 
+        shutdown = doc["MQTT/SHUT"];
+        doc["SHUT"] = shutdown;
+      }
+      if (doc.containsKey("MQTT/AIR_TEMP")){ 
+        temperatura_ar_cond = doc["MQTT/AIR_TEMP"];
+        doc["AIR_TEMP"] = temperatura_ar_cond;
+      }
+      if (doc.containsKey("MQTT/AIR_CONT_ON")){ 
+        controle_ar_cond = doc["MQTT/AIR_CONT_ON"];
+        doc["AIR_CONT_ON"] = controle_ar_cond;
+      }
+      if (doc.containsKey("MQTT/AIR_CONT_OFF")){ 
+        controle_ar_cond = doc["MQTT/AIR_CONT_OFF"];
+        doc["AIR_CONT_OFF"] = controle_ar_cond;
+      }
+      if (doc.containsKey("MQTT/LUMI")){ 
+        ativar_lumi = doc["MQTT/LUMI"];
+        doc["ON_LUMI"] = ativar_lumi;
+      }*/
+
+      //Envia para a rede mesh
+      String msg ;
+      serializeJson(doc, msg);
+      //Envia na rede MESH
+      mesh.sendBroadcast( msg );
+      Serial.println(msg);
+      //conclui a filtragem da mensagem, podendo assim processar outra mensagem
+      mensagemRecebida = false;
+  }
   mesh.update(); ///Atualiza a rede
 }
 
@@ -124,7 +143,7 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 void receivedCallback( const uint32_t &from, const String &msg ) {
   //Recebe a mensagem em JSON e o lê
   String json;
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
   json = msg.c_str();
   DeserializationError error = deserializeJson(doc, json);
   
@@ -134,48 +153,52 @@ void receivedCallback( const uint32_t &from, const String &msg ) {
     Serial.println(error.c_str());
   }
 
-  //Recebe os dados da rede
-  if(doc["ID2"] == "Sensor LUMI") luminosidade = doc["LUMI"];
-  if(doc["ID"] == "Sensor TEMP") {
+  /*//Recebe os dados da rede
+  if(doc.containsKey("LUMI")) luminosidade = doc["LUMI"];
+
+  if(doc.containsKey("TEMP")) {
     temperatura = doc["TEMP"];
     //Forma uma mensagem repassando o dado para o ESP32 MQTT via Serial
-    DynamicJsonDocument doc(1024);
-    doc["TOPIC"] = "TEMP";
+    JsonDocument doc;
     doc["MQTT/TEMP"] = temperatura;
-    String msg ;
-    serializeJson(doc, msg);
-    MQTT.println( msg );
+    serializeJson(doc, MQTT);
+    MQTT.println("");
     MQTT.flush();
+    delay(10);
   }
-  if(doc["ID"] == "Sensor PRES") {
+  if(doc.containsKey("PRES")) {
     presenca = doc["PRES"];
     //Forma uma mensagem repassando o dado para o ESP32 MQTT via Serial
-    DynamicJsonDocument doc(1024);
-    doc["TOPIC"] = "PRES";
+    JsonDocument doc;
     doc["MQTT/PRES"] = presenca;
-    String msg ;
-    serializeJson(doc, msg);
-    MQTT.println( msg );
+    serializeJson(doc, MQTT);
+    MQTT.println("");
     MQTT.flush();
+    delay(10);
   }
-  if(doc["ID"] == "Sensor ENER") {
+  if(doc.containsKey("ENER")) {
     consumo_ener = doc["ENER"];
-    //Forma uma mensagem repassando o dado para o ESP32 MQTT via Serial
-    DynamicJsonDocument doc(1024);
-    doc["TOPIC"] = "ENER";
+    //Forma uma mensagem repassando os dados para o ESP32 MQTT via Serial
+    JsonDocument doc;
     doc["MQTT/ENER"] = consumo_ener;
-    String msg ;
-    serializeJson(doc, msg);
-    MQTT.println( msg );
+    //Envia para o outro ESP32
+    serializeJson(doc, MQTT);
+    MQTT.println("");
     MQTT.flush();
-  }
+    delay(10);
+  }*/
 
   //se não estiver com o desligamento ativo, tiver presença e não tiver luminosidade, então o relé atracará
   if(!shutdown && presenca && !luminosidade)  digitalWrite(Driver, 1);
   else digitalWrite(Driver, 0);
+
+  //Envia os dados recebidos para o outro ESP32
+  serializeJson(doc, MQTT);
+  MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
+  MQTT.flush();
+  delay(10);
 }
 
 //Função que envia mensagem
 void sendMessage() {
- 
 }

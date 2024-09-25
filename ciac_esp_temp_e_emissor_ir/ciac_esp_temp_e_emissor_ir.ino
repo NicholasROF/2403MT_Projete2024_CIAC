@@ -1,3 +1,12 @@
+/*Créditos:
+
+Inspiração para rede Mesh - https://github.com/techiesms/Internet-to-Mesh-Networking-/tree/master
+
+Inspiração para emissor IR - https://github.com/crankyoldgit/IRremoteESP8266/blob/master/examples/IRsendDemo/IRsendDemo.ino
+
+Inspiração para sensor de temperatura - https://randomnerdtutorials.com/esp32-ds18b20-temperature-arduino-ide/
+
+*/
 // --- Rede MESH ---
 
 #include "painlessMesh.h" //Biblioteca responsável pela comunicação entre os ESP32
@@ -43,8 +52,10 @@ float temperatura; //Variável da temperatura
 bool presenca = true;
 bool shutdown = false;
 int graus_ar = 25;
-float ar_temperatura_on = 10;
+float ar_temperatura_on = 23;
+float ar_temperatura_off = 20;
 int graus_ar_mudanca = 25;
+bool ligado = false;
 
 void setup()
 {
@@ -122,24 +133,29 @@ void receivedCallback( uint32_t from, String &msg ) {
   if(doc.containsKey("SHUT")) shutdown = doc["SHUT"];
   if(doc.containsKey("PRES")) presenca = doc["PRES"];
 
+  //Se não tiver um desligamento forçado, tiver presença e a temperatura dor maior do que o configurado
   if(!shutdown && presenca && temperatura >= ar_temperatura_on && !ligado){  
-    irsend.sendNEC(0x00FFE02FUL); //Ligar ar-condicionado
+    irsend.sendNEC(0x00FFE22FUL); //Ligar ar-condicionado
     ligado = true;
     delay(50);
-
-  } else if(!shutdown && presenca && temperatura < ar_temperatura_off && ligado){
-    irsend.sendNEC(0x00FFE01FUL); //Desiga o ar-condicionado
+  
+  } else if(!shutdown && presenca && temperatura < ar_temperatura_off && ligado){ //Se a temperatura for menor do que o configurado
+    irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
+    ligado = false;
+    delay(50);
+  } else if(shutdown || !presenca){ //Se a temperatura for menor do que o configurado
+    irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
     ligado = false;
     delay(50);
   }
-  while(graus_ar_mudanca < graus_ar){
-    irsend.sendNEC(0x00FFE03FUL); //aumenta a temperatura do ar
+  while(graus_ar_mudanca > graus_ar){ //Se tiver mudança na temperatura do ar-condicionado
+    irsend.sendNEC(0x00FFE33FUL); //aumenta a temperatura do ar
     graus_ar += 1;
-    delay(50);
+    delay(100);
   }
-  while(graus_ar_mudanca > graus_ar){
-  irsend.sendNEC(0x00FFE04FUL); //diminui a temperatura do ar
-  graus_ar -= 1;
-  delay(50);
+  while(graus_ar_mudanca < graus_ar){
+    irsend.sendNEC(0x00FFE44FUL); //diminui a temperatura do ar
+    graus_ar -= 1;
+    delay(100);
   }
 }

@@ -1,3 +1,8 @@
+/*Créditos:
+
+Inspiração para rede Mesh - https://github.com/techiesms/Internet-to-Mesh-Networking-/tree/master
+
+*/
 // --- Rede MESH ---
 
 #include "painlessMesh.h" //Biblioteca responsável pela comunicação entre os ESP32
@@ -17,18 +22,18 @@ Task taskSendMessage( TASK_SECOND * 1 , TASK_FOREVER, &sendMessage ); //Criaçã
 
 // --- LDR ---
 
-const int LDR = 0;
+const int LDR = 0; //Pino do LDR
 int valorsensor;
 bool luminosidade;
 
 // --- HLK-LD2410b ---
 
-const int sensor_de_presenca = 10;
+const int sensor_de_presenca = 2; //Pino do sensor de presença
 bool presenca;
 
 // --- MQTT ---
 
-bool lumi_on = false;
+bool lumi_on = false; //Informação externa se a luminosidade deve ser relevante ou não
 
 void setup(){
   pinMode(LDR, INPUT); //Declaração do pino do LDR

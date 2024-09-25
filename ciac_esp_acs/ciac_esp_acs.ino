@@ -1,3 +1,10 @@
+/*Créditos:
+
+Inspiração para rede Mesh - https://github.com/techiesms/Internet-to-Mesh-Networking-/tree/master
+
+Inspiração para ACS - https://www.youtube.com/watch?v=ofqvW-8_H2M&pp=ygUMYWNzNzEyIGVzcDMy
+
+*/
 // --- Rede MESH ---
 
 #include "painlessMesh.h" //Biblioteca responsável pela comunicação entre os ESP32
@@ -23,19 +30,31 @@ const int pino_asc = 0; //Pino que o ACS está conectado
 int medicao = 0;
 double medida_media = 0;
 double tensao_obtida = 0.0;
-const float calibracao_entrada = 0.36;
-const float calibracao_sensor = 0.03;
+double calibracao = 0.0;
 const float sense = 0.185;
-double tensao_delta = 0.0;
-double corrente = 0.0;
+double tensao_delta = 0.0;  
 const float tensao = 5;
 float potencia = 0.0;
 float gasto_energetico = 0.0;
+float corrente = 0.0;
 
 void setup()
 {
   pinMode(pino_asc, INPUT); //Declara o pino do ACS
   Serial.begin(115200);
+
+  //realiza as medidas
+  for(int i = 0; i < 1000; i++){
+ 	  medicao = analogRead(pino_asc);
+    medida_media = medida_media + ((double)medicao);
+    delayMicroseconds(100);
+  }
+  //Tira a média para que o valor não fique flutuando
+  medida_media=medida_media/1000;
+  Serial.print("Valor à vazio: ");
+  //Calcula a tensão mensurada pelo ESP sem que haja corrente para servir de base para as futuras medidas
+  calibracao = medida_media * ((double)3.3/4095.0); //Valor sem corrente
+  Serial.println(calibracao);
 
   mesh.setDebugMsgTypes( ERROR | STARTUP | CONNECTION ); //Define as mensagens de eventos na rede MESH
   mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT ); //Inicializa a rede
@@ -75,7 +94,7 @@ void sendMessage() {
   for(int i = 0; i < 1000; i++){
  	  medicao = analogRead(pino_asc);
     medida_media = medida_media + ((double)medicao);
-    delay(1);
+    delayMicroseconds(100);
   }
   //Tira a média para que o valor não fique flutuando
   medida_media=medida_media/1000;
@@ -83,8 +102,7 @@ void sendMessage() {
   Serial.println(medida_media);
   //Calcula a tensão mensurada pelo ESP
   tensao_obtida = medida_media * ((double)3.3/4095.0);
-  tensao_obtida = tensao_obtida - calibracao_entrada;
-  tensao_delta = tensao_obtida - 2.5 - calibracao_sensor;
+  tensao_delta = tensao_obtida - calibracao;
   //Calcula a corrente baseada na tensão
   corrente = (tensao_delta / sense);
   corrente = sqrt(pow(corrente, 2));
@@ -100,7 +118,7 @@ void sendMessage() {
 
   //Atribui o valor do consumo em JSON e o envia
   JsonDocument doc;
-  doc["ENER"] = gasto_energetico;
+  doc["ENER"] = (int)gasto_energetico;
   String msg ;
   serializeJson(doc, msg);
   mesh.sendBroadcast( msg );

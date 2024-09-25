@@ -1,3 +1,14 @@
+/*Créditos:
+
+Inspiração para Serial - https://github.com/techiesms/Internet-to-Mesh-Networking-/blob/master ;
+https://www.robocore.net/tutoriais/comunicacao-entre-arduinos-uart?srsltid=AfmBOorxgu7LANO57zcg1h5RZBPbCJ2gtYRf4akZApPZNF6N-xfgn1nb
+*obs: foi usado ChatGPT para a confecção de ideias como a que resultou no .readStringUntil(), entretanto nenhum código foi copiado,
+a própria função citada foi achada na documentação do Arduino: https://www.arduino.cc/reference/pt/language/functions/communication/serial/
+
+Inspiração para MQTT - https://github.com/knolleary/pubsubclient/blob/master/examples/mqtt_basic/mqtt_basic.ino ;
+https://randomnerdtutorials.com/esp32-mqtt-publish-subscribe-arduino-ide/
+
+*/
 // --- MQTT ---
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -124,7 +135,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   serializeJson(doc, MQTT);
   MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
   MQTT.flush();
-  delay(10);
 }
 
 void loop() {
@@ -133,12 +143,11 @@ void loop() {
     conectaMQTT();
   }
   client.loop();
-  //Se tiver mensagens disponíveis
+  //Se tiver mensagens disponíveis e não tiver trânsito de dados
   if(MQTT.available() && !mensagemRecebida)
   {
     message = ""; //Limpa a string
     message = MQTT.readStringUntil('\n'); //Lê a Serial até um espaço
-    delay(10);
     Serial.print("Received Message - ");
     Serial.println(message);
     mensagemRecebida = true;  //Mensagem pronta
@@ -155,8 +164,7 @@ void loop() {
     {
       Serial.print("deserializeJson() failed: ");
       Serial.println(error.c_str());
-      MQTT.println("a");
-    } else MQTT.println("A");
+    }
 
     //Identifica o dado recebido e publica no MQTT
     if(doc.containsKey("TEMP")){
@@ -177,5 +185,7 @@ void loop() {
       client.publish(topico_pres, String(presenca).c_str(), true);
       Serial.println("Publicacao enviada");
     }
+    //conclui a filtragem da mensagem, podendo assim processar outra mensagem
+    mensagemRecebida = false;
   }
 }

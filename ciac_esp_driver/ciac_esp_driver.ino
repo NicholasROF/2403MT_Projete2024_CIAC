@@ -1,3 +1,13 @@
+/*Créditos:
+
+Inspiração para rede Mesh - https://github.com/techiesms/Internet-to-Mesh-Networking-/tree/master
+
+Inspiração para Serial - https://github.com/techiesms/Internet-to-Mesh-Networking-/blob/master ;
+https://www.robocore.net/tutoriais/comunicacao-entre-arduinos-uart?srsltid=AfmBOorxgu7LANO57zcg1h5RZBPbCJ2gtYRf4akZApPZNF6N-xfgn1nb
+*obs: foi usado ChatGPT para a confecção de ideias como a que resultou no .readStringUntil(), entretanto nenhum código foi copiado,
+a própria função citada foi achada na documentação do Arduino: https://www.arduino.cc/reference/pt/language/functions/communication/serial/
+
+*/
 // --- Rede MESH ---
 
 #include "painlessMesh.h" //Biblioteca responsável pela comunicação entre os ESP32
@@ -15,6 +25,7 @@ void sendMessage() ; //Tem que existir para funcionar
 
 Task taskSendMessage( TASK_SECOND * 1 , TASK_FOREVER, &sendMessage ); //Criação da tarefa de mandar mensagem
 
+//Variáveis que receberá da rede MESH
 bool luminosidade;
 float temperatura;
 float consumo_ener;
@@ -74,7 +85,6 @@ void loop() {
   {
     message = ""; //Limpa a string
     message = MQTT.readStringUntil('\n'); //Lê a Serial até um espaço
-    delay(10);
     Serial.print("Received Message - ");
     Serial.println(message);
     mensagemRecebida = true;  //Mensagem pronta
@@ -82,46 +92,44 @@ void loop() {
   //Se tiver uma mensagem pronta
   if(mensagemRecebida){
 
-      //Forma a estrutura da mensagem JSON
-      JsonDocument doc;
-      DeserializationError error = deserializeJson(doc, message);
+    //Forma a estrutura da mensagem JSON
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, message);
 
-      if (error)
-      {
-        Serial.print("deserializeJson() failed: ");
-        Serial.println(error.c_str());
-      }
+    if (error)
+    {
+      Serial.print("deserializeJson() failed: ");
+      Serial.println(error.c_str());
+    }
 
-      /*//Identifica o dado recebido e atribui em uma mensagem
-      if (doc.containsKey("MQTT/SHUT")){ 
-        shutdown = doc["MQTT/SHUT"];
-        doc["SHUT"] = shutdown;
-      }
-      if (doc.containsKey("MQTT/AIR_TEMP")){ 
-        temperatura_ar_cond = doc["MQTT/AIR_TEMP"];
-        doc["AIR_TEMP"] = temperatura_ar_cond;
-      }
-      if (doc.containsKey("MQTT/AIR_CONT_ON")){ 
-        controle_ar_cond = doc["MQTT/AIR_CONT_ON"];
-        doc["AIR_CONT_ON"] = controle_ar_cond;
-      }
-      if (doc.containsKey("MQTT/AIR_CONT_OFF")){ 
-        controle_ar_cond = doc["MQTT/AIR_CONT_OFF"];
-        doc["AIR_CONT_OFF"] = controle_ar_cond;
-      }
-      if (doc.containsKey("MQTT/LUMI")){ 
-        ativar_lumi = doc["MQTT/LUMI"];
-        doc["ON_LUMI"] = ativar_lumi;
-      }*/
+    //Identifica o dado recebido e atribui em uma mensagem
+    if (doc.containsKey("SHUT")) shutdown = doc["SHUT"];
+    /*}
+    if (doc.containsKey("MQTT/AIR_TEMP")){ 
+      temperatura_ar_cond = doc["MQTT/AIR_TEMP"];
+      doc["AIR_TEMP"] = temperatura_ar_cond;
+    }
+    if (doc.containsKey("MQTT/AIR_CONT_ON")){ 
+      controle_ar_cond = doc["MQTT/AIR_CONT_ON"];
+      doc["AIR_CONT_ON"] = controle_ar_cond;
+    }
+    if (doc.containsKey("MQTT/AIR_CONT_OFF")){ 
+      controle_ar_cond = doc["MQTT/AIR_CONT_OFF"];
+      doc["AIR_CONT_OFF"] = controle_ar_cond;
+    }
+    if (doc.containsKey("MQTT/LUMI")){ 
+      ativar_lumi = doc["MQTT/LUMI"];
+      doc["ON_LUMI"] = ativar_lumi;
+    }*/
 
-      //Envia para a rede mesh
-      String msg ;
-      serializeJson(doc, msg);
-      //Envia na rede MESH
-      mesh.sendBroadcast( msg );
-      Serial.println(msg);
-      //conclui a filtragem da mensagem, podendo assim processar outra mensagem
-      mensagemRecebida = false;
+    //Envia para a rede mesh
+    String msg ;
+    serializeJson(doc, msg);
+    //Envia na rede MESH
+    mesh.sendBroadcast( msg );
+    Serial.println(msg);
+    //conclui a filtragem da mensagem, podendo assim processar outra mensagem
+    mensagemRecebida = false;
   }
   mesh.update(); ///Atualiza a rede
 }
@@ -146,57 +154,34 @@ void receivedCallback( const uint32_t &from, const String &msg ) {
   JsonDocument doc;
   json = msg.c_str();
   DeserializationError error = deserializeJson(doc, json);
-  
+  Serial.println("Recebi!");
+
   if (error)
   {
     Serial.print("deserializeJson() failed: ");
     Serial.println(error.c_str());
   }
 
-  /*//Recebe os dados da rede
+  //Recebe os dados da rede
   if(doc.containsKey("LUMI")) luminosidade = doc["LUMI"];
 
-  if(doc.containsKey("TEMP")) {
-    temperatura = doc["TEMP"];
-    //Forma uma mensagem repassando o dado para o ESP32 MQTT via Serial
-    JsonDocument doc;
-    doc["MQTT/TEMP"] = temperatura;
-    serializeJson(doc, MQTT);
-    MQTT.println("");
-    MQTT.flush();
-    delay(10);
-  }
-  if(doc.containsKey("PRES")) {
-    presenca = doc["PRES"];
-    //Forma uma mensagem repassando o dado para o ESP32 MQTT via Serial
-    JsonDocument doc;
-    doc["MQTT/PRES"] = presenca;
-    serializeJson(doc, MQTT);
-    MQTT.println("");
-    MQTT.flush();
-    delay(10);
-  }
-  if(doc.containsKey("ENER")) {
-    consumo_ener = doc["ENER"];
-    //Forma uma mensagem repassando os dados para o ESP32 MQTT via Serial
-    JsonDocument doc;
-    doc["MQTT/ENER"] = consumo_ener;
-    //Envia para o outro ESP32
-    serializeJson(doc, MQTT);
-    MQTT.println("");
-    MQTT.flush();
-    delay(10);
-  }*/
+  if(doc.containsKey("PRES")) presenca = doc["PRES"];
 
   //se não estiver com o desligamento ativo, tiver presença e não tiver luminosidade, então o relé atracará
+  Serial.print("Shut: ");
+  Serial.println(shutdown);
+  Serial.print("luminosidade: ");
+  Serial.println(luminosidade);
+  Serial.print("presenca: ");
+  Serial.println(presenca);
   if(!shutdown && presenca && !luminosidade)  digitalWrite(Driver, 1);
   else digitalWrite(Driver, 0);
 
+  serializeJson(doc, Serial);
   //Envia os dados recebidos para o outro ESP32
   serializeJson(doc, MQTT);
   MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
   MQTT.flush();
-  delay(10);
 }
 
 //Função que envia mensagem

@@ -29,7 +29,7 @@ const char* topico_shut = "Seu_Projeto/SHUT";
 const char* topico_air_temp = "Seu_Projeto/AIR_TEMP";
 const char* topico_air_cont_on = "Seu_Projeto/AIR_CONT_ON";
 const char* topico_air_cont_off = "Seu_Projeto/AIR_CONT_OFF";
-const char* topico_lumi = "Seu_Projeto/LUMI";
+const char* topico_lumi_on = "Seu_Projeto/ON_LUMI";
 
 // Variáveis que serão atribuídas com as mensagens recebidas do MQTT
 float temperatura;
@@ -40,6 +40,7 @@ bool presenca;
 const char* topico_temp = "Seu_Projeto/TEMP";
 const char* topico_ener = "Seu_Projeto/ENER";
 const char* topico_pres = "Seu_Projeto/PRES";
+const char* topico_lumi = "Seu_Projeto/LUMI";
 
 // --- Comunicação Serial ---
 
@@ -91,7 +92,7 @@ void conectaMQTT() {
     client.subscribe(topico_air_cont_on);
     client.subscribe(topico_air_cont_off);
     client.subscribe(topico_air_temp);
-    client.subscribe(topico_lumi);
+    client.subscribe(topico_lumi_on);
   }
 }
 
@@ -123,7 +124,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if(strcmp(topic, topico_air_temp) == 0){
     doc["AR_TEMP"] = sub.toInt();
   }
-  if(strcmp(topic, topico_lumi) == 0){
+  if(strcmp(topic, topico_lumi_on) == 0){
     bool lumi;
     if(sub == "1")  lumi = true;
     else if(sub == "0") lumi = false;
@@ -132,9 +133,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
   serializeJson(doc, Serial);
   Serial.println();
   //Envia a mensagem formatada ao outro ESP conectado na rede via Serial
-  serializeJson(doc, MQTT);
-  MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
-  MQTT.flush();
+  for(int i = 0; i < 5; i++){
+    serializeJson(doc, MQTT);
+    MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
+    delay(100);
+    MQTT.flush();
+  }
 }
 
 void loop() {
@@ -143,11 +147,15 @@ void loop() {
     conectaMQTT();
   }
   client.loop();
+  if (WiFi.status() != WL_CONNECTED){
+    conectaWifi();
+  }
   //Se tiver mensagens disponíveis e não tiver trânsito de dados
   if(MQTT.available() && !mensagemRecebida)
   {
     message = ""; //Limpa a string
     message = MQTT.readStringUntil('\n'); //Lê a Serial até um espaço
+    delay(100);
     Serial.print("Received Message - ");
     Serial.println(message);
     mensagemRecebida = true;  //Mensagem pronta
@@ -183,6 +191,12 @@ void loop() {
       presenca = doc["PRES"];
       Serial.println(presenca);
       client.publish(topico_pres, String(presenca).c_str(), true);
+      Serial.println("Publicacao enviada");
+    }
+    if(doc.containsKey("LUMI")){
+      luminosidade = doc["Luminosidade"];
+      Serial.println(luminosidade);
+      client.publish(topico_lumi, String(luminosidade).c_str(), true);
       Serial.println("Publicacao enviada");
     }
     //conclui a filtragem da mensagem, podendo assim processar outra mensagem

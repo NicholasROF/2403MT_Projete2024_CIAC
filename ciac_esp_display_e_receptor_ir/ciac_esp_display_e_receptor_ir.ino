@@ -77,10 +77,10 @@ void loop() {
     Serial.println(results.value, HEX);
     armazenavalor = (results.value);
     //Identifa o sinal e executa certas funções dependendo desses
-    if(armazenavalor == 0xFFE44F || armazenavalor == 0xC8072A411 || armazenavalor == 0xC80722411) graus = graus - 1; //diminui o texto da temperatura em 1
-    else if(armazenavalor == 0xFFE33F || armazenavalor == 0xC80722410 || armazenavalor == 0xC8072A410)  graus++; //aumnenta o texto da temperatura em 1
-    else if(armazenavalor == 0xFFE22F || armazenavalor == 0xC8072241E || armazenavalor == 0xC8072A41E)  ligado = true; //"Liga" o lcd
-    else if(armazenavalor == 0xFFE11F || armazenavalor == 0xC8072A41F || armazenavalor == 0xC8072241F)  ligado = false; //"Desliga" o lcd
+    if(armazenavalor == 0xFFE01F) graus = graus - 1; //diminui o texto da temperatura em 1
+    else if(armazenavalor == 0xFFE02F)  graus++; //aumnenta o texto da temperatura em 1
+    else if(armazenavalor == 0xFFE03F)  ligado = true; //"Liga" o lcd
+    else if(armazenavalor == 0xFFE04F)  ligado = false; //"Desliga" o lcd
     delay(50);
     irrecv.resume(); //Retoma a recepção de novos sinais
   }

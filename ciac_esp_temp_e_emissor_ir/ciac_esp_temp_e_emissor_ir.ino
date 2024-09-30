@@ -133,29 +133,45 @@ void receivedCallback( uint32_t from, String &msg ) {
   if(doc.containsKey("SHUT")) shutdown = doc["SHUT"];
   if(doc.containsKey("PRES")) presenca = doc["PRES"];
 
-  //Se não tiver um desligamento forçado, tiver presença e a temperatura dor maior do que o configurado
-  if(!shutdown && presenca && temperatura >= ar_temperatura_on && !ligado){  
-    irsend.sendNEC(0x00FFE22FUL); //Ligar ar-condicionado
-    ligado = true;
-    delay(50);
-  
-  } else if(!shutdown && presenca && temperatura < ar_temperatura_off && ligado){ //Se a temperatura for menor do que o configurado
-    irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
-    ligado = false;
-    delay(50);
-  } else if(shutdown || !presenca){ //Se a temperatura for menor do que o configurado
-    irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
-    ligado = false;
-    delay(50);
+  if(ar_temperatura_on > ar_temperatura_off){
+    //Se não tiver um desligamento forçado, tiver presença e a temperatura dor maior do que o configurado
+    if(!shutdown && presenca && temperatura >= ar_temperatura_on && !ligado){  
+      Serial.println("Condição 1");
+      Serial.println(ar_temperatura_on);
+      Serial.println(ar_temperatura_off);
+      for(int i = 0; i < 5; i++){
+        irsend.sendNEC(0x00FFE22FUL); //Ligar ar-condicionado
+      }
+      delay(250);
+      ligado = true;
+    } else if(!shutdown && presenca && temperatura < ar_temperatura_off && ligado){ //Se a temperatura for menor do que o configurado
+      Serial.println("Condição 2");
+      Serial.println(ar_temperatura_on);
+      Serial.println(ar_temperatura_off);
+      for(int i = 0; i < 5; i++){
+        irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
+      }
+      delay(250);
+      ligado = false;
+    } else if(shutdown || !presenca){ //Se a temperatura for menor do que o configurado
+      Serial.println("Condição 3");
+      for(int i = 0; i < 5; i++){
+        irsend.sendNEC(0x00FFE11FUL); //Desliga o ar-condicionado
+      }
+      delay(250);
+      ligado = false;
+    }
   }
   while(graus_ar_mudanca > graus_ar){ //Se tiver mudança na temperatura do ar-condicionado
+    Serial.println("Valor emitido!");
     irsend.sendNEC(0x00FFE33FUL); //aumenta a temperatura do ar
     graus_ar += 1;
-    delay(100);
+    delay(250);
   }
   while(graus_ar_mudanca < graus_ar){
+    Serial.println("Valor emitido!");
     irsend.sendNEC(0x00FFE44FUL); //diminui a temperatura do ar
     graus_ar -= 1;
-    delay(100);
+    delay(250);
   }
 }

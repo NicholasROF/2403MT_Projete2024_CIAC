@@ -85,6 +85,7 @@ void loop() {
   {
     message = ""; //Limpa a string
     message = MQTT.readStringUntil('\n'); //Lê a Serial até um espaço
+    delay(100);
     Serial.print("Received Message - ");
     Serial.println(message);
     mensagemRecebida = true;  //Mensagem pronta
@@ -181,6 +182,7 @@ void receivedCallback( const uint32_t &from, const String &msg ) {
   //Envia os dados recebidos para o outro ESP32
   serializeJson(doc, MQTT);
   MQTT.println(""); //Espaço crucial para que o remetente entenda corretamente
+  delay(100);
   MQTT.flush();
 }
 

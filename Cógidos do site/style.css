@@ -396,6 +396,75 @@ main .recent_order a {
     cursor: pointer;
     border-radius: var(--border-radius-1);
 }
+/* Estilos gerais */
+
+.container {
+    display: grid;
+    width: 96%;
+    gap: 1.8rem;
+    grid-template-columns: 14rem auto;
+}
+
+/* Estilos para a organização lado a lado */
+.controle-mqtt-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.left, .right {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.right {
+    margin-right: 0;
+}
+.right{
+    float: left;
+            width: 48%;
+            margin-right: 2%;
+            height: 50px;
+           
+            text-align: right;
+            margin-top: 25px
+}
+.left{
+       
+        float: left;
+        width: 48%;
+        margin-right: 2%;
+        height: 50px;
+     
+        margin-top: 25px;
+        
+       
+    
+}
+
+/* Estilos para os botões e caixas de mensagem */
+input {
+    width: calc(100% - 90px); /* Ajusta a largura da caixa de texto */
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px; /* Margem para distanciar o botão da caixa de texto */
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
 
 .right .theme-toggler span {
     font-size: 1.2rem;
@@ -421,6 +490,40 @@ main .recent_order a {
 .right .item h3 {
     color: var(--clr-dark);
 }
+/* Seção de Shutdown */
+.shutdown_section {
+    background: #282e3a;
+    padding: 2rem;
+    border-radius: 16px;
+    margin-top: 2rem;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.shutdown_section h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #ff6b00;
+}
+
+/* Botão de Shutdown */
+.shutdown_section button {
+    padding: 0.8rem 2.5rem;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #e74c3c;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    margin-right: 1rem;
+}
+
+.shutdown_section button:hover {
+    background-color: #c0392b;
+    transform: scale(1.1);
+}
+
 
 /* Media Queries */
 @media screen and (max-width: 1200px) {
